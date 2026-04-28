@@ -1,0 +1,73 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Test Dataset Images - Real-Time Dehazing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">🧪 Test with Dataset Images</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Testing Instructions:</strong> 
+                        <ul class="mb-0">
+                            <li>These are large images from your training dataset</li>
+                            <li>They should work well with object detection</li>
+                            <li>Click "Test This Image" to upload and process</li>
+                            <li>Check object detection results with bounding boxes</li>
+                        </ul>
+                    </div>
+
+                    {% if dataset_images %}
+                    <div class="row">
+                        {% for image in dataset_images %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <img src="{{ image.path }}" class="card-img-top" 
+                                     style="height: 200px; object-fit: cover;">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ image.name }}</h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            Size: {{ image.size }}px<br>
+                                            {% if image.width >= 300 and image.height >= 300 %}
+                                            <span class="text-success">✅ Good for object detection</span>
+                                            {% else %}
+                                            <span class="text-warning">⚠️ Small for detection</span>
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="card-footer">
+                                    <form action="{% url 'upload_image' %}" method="post" enctype="multipart/form-data" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="image" value="{{ image.name }}">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            🧪 Test This Image
+                                        </button>
+                                    </form>
+                                    <a href="{{ image.path }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                        👀 View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div style="font-size: 4rem;">📁</div>
+                        <h4>No test images found</h4>
+                        <p class="text-muted">Run the test script to copy dataset images for testing</p>
+                        <code>python test_dataset_images.py</code>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

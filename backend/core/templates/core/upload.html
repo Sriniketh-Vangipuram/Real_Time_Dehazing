@@ -1,0 +1,129 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Upload Image - Real-Time Dehazing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Upload Image for Dehazing</h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+                        
+                        <div class="upload-area mb-4" id="uploadArea">
+                            <input type="file" name="image" id="imageInput" accept=".jpg,.jpeg,.png,.bmp" style="display: none;">
+                            <div class="upload-content">
+                                <div style="font-size: 4rem;">📁</div>
+                                <h4>Drop your image here or click to browse</h4>
+                                <p class="text-muted">Supported formats: JPG, JPEG, PNG, BMP</p>
+                                <p class="text-muted">Max file size: 10MB</p>
+                            </div>
+                        </div>
+                        
+                        <div class="image-preview mb-4 text-center" id="imagePreview" style="display: none;">
+                            <img id="previewImage" class="result-image" style="max-height: 300px;">
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearImage()">Remove Image</button>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                                Process Image
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5>Tips for Best Results:</h5>
+                    <ul class="mb-0">
+                        <li>Use images with visible haze or fog for dramatic results</li>
+                        <li>Ensure good lighting in the original image</li>
+                        <li>Higher resolution images work better</li>
+                        <li>Try both indoor and outdoor hazy scenes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const uploadArea = document.getElementById('uploadArea');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    uploadArea.addEventListener('click', () => imageInput.click());
+    
+    imageInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp'];
+
+            if (!validTypes.includes(file.type)) {
+                alert('Please select a valid image file (JPG, PNG, BMP)');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewImage.src = e.target.result;
+                imagePreview.style.display = 'block';
+                uploadArea.style.display = 'none';
+                submitBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    uploadArea.addEventListener('dragover', e => {
+        e.preventDefault();
+        uploadArea.style.background = '#e9ecef';
+    });
+
+    uploadArea.addEventListener('dragleave', e => {
+        e.preventDefault();
+        uploadArea.style.background = '#f8f9fa';
+    });
+
+    uploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadArea.style.background = '#f8f9fa';
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            imageInput.files = e.dataTransfer.files;
+            const event = new Event('change');
+            imageInput.dispatchEvent(event);
+        }
+    });
+
+    window.clearImage = function() {
+        imageInput.value = '';
+        imagePreview.style.display = 'none';
+        uploadArea.style.display = 'block';
+        submitBtn.disabled = true;
+    };
+});
+</script>
+{% endblock %}
+{% endblock %}

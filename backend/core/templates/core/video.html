@@ -1,0 +1,476 @@
+{% extends "core/base.html" %} 
+{% block title %}
+Real-Time Video Dehazing
+{%endblock %} 
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">🎥 Real-Time Video Dehazing Demo</h4>
+        </div>
+        <div class="card-body">
+          <!-- Webcam Status -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body text-center">
+                  <h6>Webcam Status</h6>
+                  {% if has_webcam %}
+                  <div class="text-success mb-2">
+                    <i class="fas fa-check-circle fa-2x"></i>
+                    <p class="mt-2">Webcam Available</p>
+                  </div>
+                  {% else %}
+                  <div class="text-danger mb-2">
+                    <i class="fas fa-times-circle fa-2x"></i>
+                    <p class="mt-2">No Webcam Found</p>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body text-center">
+                  <h6>Expected Performance</h6>
+                  <div class="display-6 text-primary">8-15 FPS</div>
+                  <small>On laptop with YOLO Nano</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-body text-center">
+                  <h6>Processing Status</h6>
+                  <div id="processingStatus" class="text-warning">
+                    <i class="fas fa-pause-circle fa-2x"></i>
+                    <p class="mt-2">Ready to Start</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Video Feed -->
+          <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+              <h5 class="mb-0">📹 Live Camera Feed</h5>
+            </div>
+            <div class="card-body text-center">
+              <div id="videoContainer" class="mb-3">
+                <img
+                  id="videoFeed"
+                  src=""
+                  class="img-fluid rounded"
+                  style="max-height: 480px; border: 2px solid #333"
+                  alt="Live camera feed will appear here"
+                />
+              </div>
+              <div class="text-muted small">
+                <i class="fas fa-info-circle"></i>
+                Real-time processing with FPS counter and object detection
+              </div>
+            </div>
+          </div>
+
+          <!-- Add to Control Panel or create a new card -->
+           <!-- Update the Surveillance Logging card to include detection count -->
+<div class="card mt-3">
+    <div class="card-header bg-dark text-white">
+        <h6 class="mb-0">📊 Surveillance Logging</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <p class="mb-1">
+                    <i class="fas fa-camera text-success"></i>
+                    <strong>Current Detections:</strong> 
+                    <span id="detectionCount" class="badge bg-success">0</span>
+                </p>
+            </div>
+            <div class="col-md-4">
+                <p class="mb-1">
+                    <i class="fas fa-save text-info"></i>
+                    <strong>Screenshots saved:</strong> Every 30 detections
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'detection_history' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-history"></i> View Detection History
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Control Panel - ADD THIS SECTION -->
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Control Panel</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 text-center">
+                <button id="startBtn" class="btn btn-success btn-lg w-100 mb-2" 
+                        {% if not has_webcam %}disabled{% endif %}>
+                    <i class="fas fa-play"></i> Start Live Demo
+                </button>
+                <small>Starts webcam processing</small>
+            </div>
+            <div class="col-md-4 text-center">
+                <button id="stopBtn" class="btn btn-danger btn-lg w-100 mb-2" disabled>
+                    <i class="fas fa-stop"></i> Stop Processing
+                </button>
+                <small>Stops the demo</small>
+            </div>
+            <div class="col-md-4 text-center">
+                <button id="statsBtn" class="btn btn-info btn-lg w-100 mb-2">
+                    <i class="fas fa-chart-bar"></i> Show Stats
+                </button>
+                <small>Performance metrics</small>
+            </div>
+        </div>
+    </div>
+</div>
+          <!-- Add to Control Panel -->
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="form-label">Processing Mode:</label>
+            <div class="btn-group w-100" role="group">
+                <button type="button" class="btn btn-outline-primary mode-btn active" data-mode="fast">
+                    <i class="fas fa-bolt"></i> Fast (15 FPS)
+                </button>
+                <button type="button" class="btn btn-outline-success mode-btn" data-mode="balanced">
+                    <i class="fas fa-scale-balanced"></i> Balanced (10 FPS)
+                </button>
+                <button type="button" class="btn btn-outline-warning mode-btn" data-mode="quality">
+                    <i class="fas fa-star"></i> Quality (5 FPS)
+                </button>
+            </div>
+            <small class="text-muted">Adjusts processing frequency for optimal performance</small>
+        </div>
+    </div>
+</div>
+
+         <!-- In the Results Display section, update: -->
+<div id="resultsSection" class="d-none">
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">📊 Live Performance Metrics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row" id="statsDisplay">
+                <!-- Stats will appear here -->
+            </div>
+            
+            <!-- Model Status -->
+            <div id="modelStatus" class="mt-3">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+          <!-- Comparison Table -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <h5 class="mb-0">How We Compare to Research Papers</h5>
+            </div>
+            <div class="card-body">
+              <table class="table table-bordered">
+                <thead>
+                  <tr class="table-primary">
+                    <th>Method</th>
+                    <th>Real-time?</th>
+                    <th>Speed</th>
+                    <th>Our Advantage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>DCP (2009)</td>
+                    <td><span class="badge bg-danger">No</span></td>
+                    <td>10-30 seconds/image</td>
+                    <td><strong>500x faster</strong></td>
+                  </tr>
+                  <tr>
+                    <td>AOD-Net (2017)</td>
+                    <td><span class="badge bg-warning">Limited</span></td>
+                    <td>1-2 seconds/image</td>
+                    <td><strong>10-20x faster</strong></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Our System</strong></td>
+                    <td><span class="badge bg-success">Yes</span></td>
+                    <td><strong id="ourFps">0</strong> FPS</td>
+                    <td>
+                      <strong class="text-success">Truly real-time</strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Add after the comparison table -->
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">⚡ Real-Time Performance Analysis</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>What This Demo Proves:</h6>
+                <ul>
+                    <li><strong>Real-time processing</strong> at <span id="liveFps">0</span> FPS</li>
+                    <li><strong>Simultaneous dehazing & detection</strong></li>
+                    <li><strong>Edge-device ready</strong> (running on your laptop)</li>
+                    <li><strong>No specialized hardware</strong> needed</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Research Paper Limitations Overcome:</h6>
+                <ul>
+                    <li>✅ <strong>DCP (2009):</strong> 10-30s → Our: Real-time</li>
+                    <li>✅ <strong>AOD-Net (2017):</strong> 1-2s → Our: Real-time</li>
+                    <li>✅ <strong>Single image only</strong> → Our: Continuous video</li>
+                    <li>✅ <strong>No detection</strong> → Our: Integrated detection</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  $(document).ready(function () {
+    // Video feed URL
+    const videoFeedUrl = "{% url 'video_feed' %}";
+    const videoFeedElement = $("#videoFeed");
+
+    // Start video feed
+    videoFeedElement.attr("src", videoFeedUrl);
+
+    // Update status
+    function updateStatus(status, message) {
+      const statusDiv = $("#processingStatus");
+      if (status === "processing") {
+        statusDiv.html(`
+                <i class="fas fa-play-circle fa-2x text-success"></i>
+                <p class="mt-2 text-success">${message}</p>
+            `);
+      } else if (status === "stopped") {
+        statusDiv.html(`
+                <i class="fas fa-pause-circle fa-2x text-warning"></i>
+                <p class="mt-2 text-warning">${message}</p>
+            `);
+      } else {
+        statusDiv.html(`
+                <i class="fas fa-times-circle fa-2x text-danger"></i>
+                <p class="mt-2 text-danger">${message}</p>
+            `);
+      }
+    }
+
+    // Start processing
+    $("#startBtn").click(function () {
+      $("#startBtn").prop("disabled", true);
+      $("#stopBtn").prop("disabled", false);
+
+      $.post(
+        "",
+        {
+          action: "start",
+          csrfmiddlewaretoken: "{{ csrf_token }}",
+        },
+        function (data) {
+          if (data.status === "started") {
+            updateStatus("processing", "Live Processing...");
+            showAlert("success", "Real-time processing started!");
+
+            // Start updating stats
+            updateStats();
+          } else {
+            showAlert("warning", data.message);
+            $("#startBtn").prop("disabled", false);
+          }
+        }
+      );
+    });
+
+    // Stop processing
+    $("#stopBtn").click(function () {
+      $.post(
+        "",
+        {
+          action: "stop",
+          csrfmiddlewaretoken: "{{ csrf_token }}",
+        },
+        function (data) {
+          if (data.status === "stopped") {
+            updateStatus("stopped", "Ready to Start");
+            $("#startBtn").prop("disabled", false);
+            $("#stopBtn").prop("disabled", true);
+
+            // Show final stats
+            showFinalStats(data.stats);
+            showAlert("info", "Processing stopped.");
+          }
+        }
+      );
+    });
+
+    // Get stats
+   // Update the updateStats function:
+function updateStats() {
+     if ($('#stopBtn').prop('disabled')) return;
+    
+    $.post('', {
+        action: 'stats',
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+    }, function(data) {
+        if (data.is_processing) {
+            // Update detection count
+            $('#detectionCount').text(data.total_detections || 0);
+            
+            $('#statsDisplay').html(`
+                <div class="col-md-3 text-center">
+                    <div class="display-6 text-primary">${data.current_fps.toFixed(1)}</div>
+                    <small>Current FPS</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="display-6 text-success">${data.total_frames}</div>
+                    <small>Frames Processed</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="display-6 text-warning">${data.avg_objects ? data.avg_objects.toFixed(1) : '0'}</div>
+                    <small>Avg Objects</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="display-6 text-danger">${data.elapsed_time.toFixed(1)}s</div>
+                    <small>Time Elapsed</small>
+                </div>
+            `);
+            
+            // Update model status
+            let modelStatusHTML = '<div class="row"><div class="col-md-12"><h6>🤖 Model Status:</h6>';
+            
+            if (data.dehazer_loaded) {
+                modelStatusHTML += `
+                    <span class="badge bg-success me-2">
+                        <i class="fas fa-check"></i> Dehazer: ON
+                    </span>
+                    ${data.avg_dehaze_time ? `<small class="text-muted">Avg: ${data.avg_dehaze_time.toFixed(1)}ms</small>` : ''}
+                `;
+            } else {
+                modelStatusHTML += `<span class="badge bg-danger me-2">Dehazer: OFF</span>`;
+            }
+            
+            if (data.detector_loaded) {
+                modelStatusHTML += `
+                    <span class="badge bg-success me-2">
+                        <i class="fas fa-check"></i> Detector: ON
+                    </span>
+                    ${data.avg_detect_time ? `<small class="text-muted">Avg: ${data.avg_detect_time.toFixed(1)}ms</small>` : ''}
+                `;
+            } else {
+                modelStatusHTML += `<span class="badge bg-danger me-2">Detector: OFF</span>`;
+            }
+            
+            if (!data.dehazer_loaded && !data.detector_loaded) {
+                modelStatusHTML += `<div class="alert alert-warning mt-2">⚠️ Running in simulation mode. Models not loaded.</div>`;
+            }
+            
+            modelStatusHTML += '</div></div>';
+            $('#modelStatus').html(modelStatusHTML);
+            
+            // Update comparison table
+            $('#ourFps').text(data.current_fps.toFixed(1));
+            
+            // Show results section
+            $('#resultsSection').removeClass('d-none');
+            // Add to updateStats function:
+            $('#liveFps').text(data.current_fps.toFixed(1));
+            
+            // Schedule next update
+            setTimeout(updateStats, 1000);
+        }
+    });
+}
+    // Show final stats
+    function showFinalStats(stats) {
+      $("#statsDisplay").html(`
+            <div class="col-md-3 text-center">
+                <div class="display-6 text-primary">${stats.average_fps.toFixed(
+                  1
+                )}</div>
+                <small>Average FPS</small>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="display-6 text-success">${stats.total_frames}</div>
+                <small>Total Frames</small>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="display-6 text-warning">${stats.min_fps.toFixed(
+                  1
+                )}</div>
+                <small>Min FPS</small>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="display-6 text-danger">${stats.max_fps.toFixed(
+                  1
+                )}</div>
+                <small>Max FPS</small>
+            </div>
+        `);
+      $("#ourFps").text(stats.average_fps.toFixed(1));
+    }
+
+    // Stats button
+    $("#statsBtn").click(function () {
+      $.post(
+        "",
+        {
+          action: "stats",
+          csrfmiddlewaretoken: "{{ csrf_token }}",
+        },
+        function (data) {
+          if (Object.keys(data).length > 0) {
+            $("#resultsSection").removeClass("d-none");
+            if (data.is_processing) {
+              updateStats();
+            } else if (data.total_frames > 0) {
+              showFinalStats(data);
+            }
+          }
+        }
+      );
+    });
+
+    function showAlert(type, message) {
+      const alert = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+      $(".card-body").prepend(alert);
+      setTimeout(() => $(".alert").alert("close"), 3000);
+    }
+
+    // Initial status
+    updateStatus("stopped", "Ready to Start");
+    // Mode selection
+$('.mode-btn').click(function() {
+    $('.mode-btn').removeClass('active');
+    $(this).addClass('active');
+    
+    const mode = $(this).data('mode');
+    showAlert('info', `Mode set to: ${$(this).text().trim()}`);
+});
+  });
+</script>
+{% endblock %}

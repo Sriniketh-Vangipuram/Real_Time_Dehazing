@@ -1,0 +1,1 @@
+web: cd backend && gunicorn dehazing_app.wsgi --log-file -

@@ -1,0 +1,163 @@
+{% extends "core/base.html" %}
+
+{% block title %}Detection History - Surveillance Log{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">📹 Surveillance Detection History</h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Current Session Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Current Session</h6>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="display-6 text-primary">{{ stats.total_detections|default:0 }}</div>
+                                            <small>Total Detections</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="display-6 text-success">{{ stats.average_fps|default:0|floatformat:1 }}</div>
+                                            <small>Avg FPS</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Actions</h6>
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'video_processing' %}" class="btn btn-success">
+                                            <i class="fas fa-play"></i> Start New Session
+                                        </a>
+                                        {% if stats.session_dir %}
+                                        <button class="btn btn-info" onclick="viewSession('{{ stats.session_dir }}')">
+                                            <i class="fas fa-folder-open"></i> View Current Session
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Detections -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">🕐 Recent Detections</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if detection_history %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Frame</th>
+                                            <th>Objects</th>
+                                            <th>Classes</th>
+                                            <th>FPS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for detection in detection_history %}
+                                        <tr>
+                                            <td>{{ detection.timestamp|date:"H:i:s" }}</td>
+                                            <td>#{{ detection.frame_number }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if detection.object_count > 0 %}success{% else %}secondary{% endif %}">
+                                                    {{ detection.object_count }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if detection.classes %}
+                                                    {% for class in detection.classes %}
+                                                    <span class="badge bg-warning">{{ class }}</span>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ detection.fps|floatformat:1 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <div style="font-size: 4rem;">📭</div>
+                                <h5>No detections yet</h5>
+                                <p class="text-muted">Start video processing to begin surveillance logging</p>
+                                <a href="{% url 'video_processing' %}" class="btn btn-primary">
+                                    <i class="fas fa-play"></i> Start Surveillance
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Previous Sessions -->
+                    {% if has_sessions %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">📁 Previous Surveillance Sessions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for session in sessions %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6>{{ session.name }}</h6>
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-images"></i> {{ session.image_count }} images<br>
+                                                    <i class="fas fa-calendar"></i> {{ session.created|date:"M d, H:i" }}
+                                                </small>
+                                            </p>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button class="btn btn-sm btn-outline-primary w-100" 
+                                                    onclick="viewSession('{{ session.path }}')">
+                                                <i class="fas fa-eye"></i> View Session
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewSession(sessionPath) {
+    // Extract session name from path
+    const sessionName = sessionPath.split('/').pop();
+    
+    // Show modal or redirect to session viewer
+    alert(`Session: ${sessionName}\nPath: ${sessionPath}\n\nImages are saved in: media/detection_logs/`);
+    
+    // In real implementation, you would:
+    // 1. List all images in the session folder
+    // 2. Display them in a gallery
+    // 3. Show detection statistics
+}
+</script>
+{% endblock %}
