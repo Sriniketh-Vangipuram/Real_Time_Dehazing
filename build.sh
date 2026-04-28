@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 
-# Exit on error
 set -o errexit
 
-# Install Python dependencies
+echo "📁 Current dir: $(pwd)"
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Download YOLO model (if not already present)
+# Download YOLO model
 python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 
+# Move into backend (important for Django)
+cd backend
+
 # Collect static files
-python backend/manage.py collectstatic --noinput
+python manage.py collectstatic --noinput
 
 # Run migrations
-python backend/manage.py migrate
+python manage.py migrate
 
-echo "Build completed successfully!"
+echo "✅ Build completed successfully!"
